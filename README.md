@@ -31,3 +31,7 @@ $b = 0:$ Options on futures, subject to equity-type settlement
 $b = r - r_{f}:$ Garman-Kohlhagen model for foreign currency options, where $r_f$ is the foreing interest rate  
 
 Sources: Options Volatility and Pricing by Sheldon Natenburg (2e), The Complete Guide to Option Pricing Formulas by Espen Gaarder Haug (2e)
+
+<p align="center">
+<img src = "https://raw.githubusercontent.com/ldwhite/BlackScholes/main/options.png" style = "width:80%" />
+</p>
