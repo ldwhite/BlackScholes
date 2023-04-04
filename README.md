@@ -1,6 +1,6 @@
 # Black-Scholes Model Option Calculator
 
-This Python script constructs a DataClass which, when provided with the Option category (Equity, FX, etc), type (call or put), strike price, price of the underlying, days to expiration (which the user must divide by total days in the year), interest rate, foreign interest rate (if an FX option), and annualized volatility.
+This Python script constructs a DataClass which, when provided with the Option category (Equity, FX, etc), type (call or put), strike price, price of the underlying, days to expiration (which the user must divide by total days in the year), interest rate, foreign interest rate (if an FX option), and annualized volatility. This script will then generate an Option object with the option's premium, as well as all of its greeks, as attributes to that object.
 
 The option premium of a European call, C, is given by
 $$C = S e^{(b - r)t} N(d_{1}) - X e^{-rt} N(d_{2})$$
@@ -32,6 +32,12 @@ $b = r - r_{f}:$ Garman-Kohlhagen model for foreign currency options, where $r_f
 
 Sources: Options Volatility and Pricing by Sheldon Natenburg (2e), The Complete Guide to Option Pricing Formulas by Espen Gaarder Haug (2e)
 
+### Example
+
+The following is an example using an equity call option with a strike price of 3870, underlying price of 3858.01, time to expiration of 24 days, interest rate of 0.0325, and annualized volatility of 0.2288 (note that these numbers are for example purposes only).
+
 <p align="center">
 <img src = "https://raw.githubusercontent.com/ldwhite/BlackScholes/main/options.png" style = "width:80%" />
 </p>
+
+Then, by running `opt.price()` you will find that the Black-Scholes model determines a fair value of this option's premium to be `100.80`
