@@ -44,7 +44,7 @@ class Option:
 
     def calculate_d1_and_d2(self):
         self.d1 = (log(self.stock_price / self.strike_price) + \
-                   (self.risk_free_rate + self.volatility ** 2 / 2) * \
+                   (self.risk_free_rate + (self.volatility ** 2) / 2) * \
                     self.time_to_expiration) / \
                     (self.volatility * sqrt(self.time_to_expiration))
         self.d2 = self.d1 - self.volatility * sqrt(self.time_to_expiration)
@@ -114,9 +114,7 @@ class Option:
             
     def calculate_vega(self):
         self.vega = self.stock_price * \
-            ((self.cost_of_carry - self.risk_free_rate) * self.time_to_expiration) * \
-            self.cost_of_carry * self.d1 * \
-            sqrt(self.time_to_expiration)
+            self.normal_cdf(self.d1) * sqrt(self.time_to_expiration)
 
     def calculate_rho(self):
         if self.option_type == OptionType.CALL and self.cost_of_carry != 0:
@@ -166,7 +164,7 @@ class Option:
 
     def implied_volatility(self, target_premium, initial_guess=0.2, max_iterations=100, tolerance=1e-6):
         sigma = initial_guess
-        for _ in range(max_iterations):
+        for i in range(max_iterations):
             self.volatility = sigma
             self.calculate_d1_and_d2()
             self.calculate_premium_european()
@@ -175,6 +173,13 @@ class Option:
                 return sigma
 
             self.calculate_vega()
-            sigma -= premium_difference / self.vega
+            
+            # Check if vega is very close to zero
+            if abs(self.vega) < 1e-6:
+                # Update sigma by a small fixed amount
+                sigma += 1e-6 if premium_difference > 0 else -1e-6
+            else:
+                sigma -= premium_difference / self.vega
+            print(f"Iteration {i+1}: sigma={sigma}, premium_difference={premium_difference}, vega={self.vega}")
 
         raise RuntimeError("Implied volatility calculation did not converge")
