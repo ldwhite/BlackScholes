@@ -2,6 +2,8 @@
 
 This Python script constructs a DataClass which, when provided with the Option category (Equity, FX, etc), type (call or put), strike price, price of the underlying, days to expiration (which the user must divide by total days in the year), interest rate, foreign interest rate (if an FX option), and annualized volatility. This script will then generate an Option object with the option's premium, as well as all of its greeks, as attributes to that object using either the Black-Scholes model (for a European option) or the binomial tree method (for an American option). Additionally, if one provide the model with a target premium for the option, the model will calculate its implied volatility using the Newton-Raphson method.
 
+## Black-Scholes Model:
+
 The option premium of a European call, C, is given by
 $$C = S e^{(b - r)t} N(d_{1}) - X e^{-rt} N(d_{2})$$
 
