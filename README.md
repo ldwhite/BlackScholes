@@ -1,6 +1,6 @@
-# Black-Scholes Model Option Calculator
+# Option Calculator
 
-This Python script constructs a DataClass which, when provided with the Option category (Equity, FX, etc), type (call or put), strike price, price of the underlying, days to expiration (which the user must divide by total days in the year), interest rate, foreign interest rate (if an FX option), and annualized volatility. This script will then generate an Option object with the option's premium, as well as all of its greeks, as attributes to that object.
+This Python script constructs a DataClass which, when provided with the Option category (Equity, FX, etc), type (call or put), strike price, price of the underlying, days to expiration (which the user must divide by total days in the year), interest rate, foreign interest rate (if an FX option), and annualized volatility. This script will then generate an Option object with the option's premium, as well as all of its greeks, as attributes to that object using either the Black-Scholes model (for a European option) or the binomial tree method (for an American option). Additionally, if one provide the model with a target premium for the option, the model will calculate its implied volatility using the Newton-Raphson method.
 
 The option premium of a European call, C, is given by
 $$C = S e^{(b - r)t} N(d_{1}) - X e^{-rt} N(d_{2})$$
@@ -40,4 +40,6 @@ The following is an example using an equity call option with a strike price of 3
 <img src = "https://raw.githubusercontent.com/ldwhite/BlackScholes/main/options.png" style = "width:80%" />
 </p>
 
-Then, by running `opt.price()` you will find that the Black-Scholes model determines a fair value of this option's premium to be `100.80`
+Then, by running `option.premium` you will find that the Black-Scholes model determines a fair value of this option's premium to be `88.48`
+
+Additionally, if you find that the market has priced that same option at 87, then you can calculate the implied probability of the option by setting `market_premium = 87` and running `option.implied_volatility(market_premium)`.
