@@ -180,6 +180,5 @@ class Option:
                 sigma += 1e-6 if premium_difference > 0 else -1e-6
             else:
                 sigma -= premium_difference / self.vega
-            print(f"Iteration {i+1}: sigma={sigma}, premium_difference={premium_difference}, vega={self.vega}")
 
         raise RuntimeError("Implied volatility calculation did not converge")
