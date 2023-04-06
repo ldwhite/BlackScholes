@@ -39,7 +39,7 @@ Sources: Options Volatility and Pricing by Sheldon Natenburg (2e), The Complete 
 The following is an example using an equity call option with a strike price of 3870, underlying price of 3858.01, time to expiration of 24 days, interest rate of 0.0325, and annualized volatility of 0.2288 (note that these numbers are for example purposes only).
 
 <p align="center">
-<img src = "https://raw.githubusercontent.com/ldwhite/BlackScholes/main/options.png" style = "width:80%" />
+<img src = "https://raw.githubusercontent.com/ldwhite/BlackScholes/main/option.png" style = "width:80%" />
 </p>
 
 Then, by running `option.premium` you will find that the Black-Scholes model determines a fair value of this option's premium to be `88.48`
