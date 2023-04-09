@@ -1,6 +1,12 @@
+"""
+This module implements an Option class which the calculates the premium,
+implied volatility, and Greeks of European- and American-style options using
+the Black-Scholes and binomial tree models, respectively.
+"""
+
 from dataclasses import dataclass, field
 import scipy.stats
-from numpy import *
+from numpy import log, sqrt, exp, maximum, zeros, e
 from enum import Enum
 
 class OptionCategory(Enum):
@@ -26,10 +32,10 @@ class Option:
     risk_free_rate: float
     volatility: float
     foreign_rate: float = field(default=None)
-    dividend_rate: float = field(default=None)
+    dividend_rate: float = field(default=0.0)
     exercise_style: ExerciseStyle = field(default=ExerciseStyle.EUROPEAN)
 
-    def __post_init__(self):
+    def __post_init__(self) -> None:
         self.normal_pdf = scipy.stats.norm.pdf
         self.normal_cdf = scipy.stats.norm.cdf
         self.calculate_d1_and_d2()
@@ -42,14 +48,28 @@ class Option:
 
         self.calculate_greeks()
 
-    def calculate_d1_and_d2(self):
-        self.d1 = (log(self.stock_price / self.strike_price) + \
-                   (self.risk_free_rate + (self.volatility ** 2) / 2) * \
-                    self.time_to_expiration) / \
-                    (self.volatility * sqrt(self.time_to_expiration))
+    def calculate_d1_and_d2(self) -> None:
+        """
+        Calculate the d1 and d2 parameters used in the Black-Scholes option pricing model.
+
+        These parameters are used in the calculation of option premia and Greeks.
+        """
+        self.d1 = (log(self.stock_price / self.strike_price) \
+                   + (self.risk_free_rate + (self.volatility ** 2) / 2) \
+                   * self.time_to_expiration) \
+                   / (self.volatility * sqrt(self.time_to_expiration))
         self.d2 = self.d1 - self.volatility * sqrt(self.time_to_expiration)
 
-    def calculate_cost_of_carry(self):
+    def calculate_cost_of_carry(self) -> None:
+        """
+        Calcualtes the cost of carry based on the category of option.
+
+        This method sets the cost of carry (commonly expressed as the 'b' term in the Black-Scholes model),
+        which is determined by the category of topion (equity, future, or currency).
+
+        This method raises a TypeError if the currency category is chosen without providing a foreign interest rate.
+        """
+
         try:
             if self.category == OptionCategory.EQUITY:
                 self.cost_of_carry = self.risk_free_rate
@@ -62,90 +82,104 @@ class Option:
         except TypeError:
             print('ERROR: FX Options Must Include a Foreign Interest-Rate')
 
-    def calculate_premium_european(self):
-        if self.option_type == OptionType.CALL:
-            self.premium = self.normal_cdf(self.d1) * \
-                self.stock_price - self.normal_cdf(self.d2) * \
-                self.strike_price * \
-                exp(-self.risk_free_rate * self.time_to_expiration)
-        elif self.option_type == OptionType.PUT:
-            self.premium = self.normal_cdf(-self.d2) * \
-                self.strike_price * \
-                exp(-self.risk_free_rate * self.time_to_expiration) - \
-                self.normal_cdf(-self.d1) * \
-                self.stock_price
+    def calculate_premium_european(self) -> None:
+        """
+        Calculates the premium of a European-style option.
 
-    def calculate_greeks(self):
+        This method uses the Black-Scholes formula to calculate the premium of
+        a European-style call or put option. The calculated premium is then stored in the
+        attribute `self.premium`.
+        """
+        if self.option_type == OptionType.CALL:
+            self.premium = self.normal_cdf(self.d1) \
+                * self.stock_price - self.normal_cdf(self.d2) \
+                * self.strike_price \
+                * exp(-self.risk_free_rate * self.time_to_expiration)
+        elif self.option_type == OptionType.PUT:
+            self.premium = self.normal_cdf(-self.d2) \
+                * self.strike_price \
+                * exp(-self.risk_free_rate * self.time_to_expiration) \
+                - self.normal_cdf(-self.d1) \
+                * self.stock_price
+
+    def calculate_greeks(self) -> None:
         self.calculate_delta()
         self.calculate_gamma()
         self.calculate_theta()
         self.calculate_vega()
         self.calculate_rho()
 
-    def calculate_delta(self):
+    def calculate_delta(self) -> None:
         if self.option_type == OptionType.CALL:
             self.delta = exp(self.cost_of_carry - self.risk_free_rate) * self.time_to_expiration
 
-    def calculate_gamma(self):
-        self.gamma = exp((self.cost_of_carry - self.risk_free_rate) * self.time_to_expiration) * \
-            self.normal_pdf(self.d1) / self.stock_price * \
-            self.volatility * \
-            sqrt(self.time_to_expiration)
+    def calculate_gamma(self) -> None:
+        self.gamma = exp((self.cost_of_carry - self.risk_free_rate) * self.time_to_expiration) \
+            * self.normal_pdf(self.d1) / self.stock_price \
+            * self.volatility \
+            * sqrt(self.time_to_expiration)
 
-    def calculate_theta(self):
+    def calculate_theta(self) -> None:
         if self.option_type == OptionType.CALL:
-            self.theta = -self.stock_price * \
-                self.normal_pdf(self.d1) * \
-                self.volatility / (2 * sqrt(self.time_to_expiration)) - \
-                self.cost_of_carry * self.stock_price * \
-                exp(-self.cost_of_carry * self.time_to_expiration) * \
-                self.normal_cdf(self.d1) - self.risk_free_rate * \
-                self.strike_price * exp(-self.risk_free_rate * self.time_to_expiration) * \
-                self.normal_cdf(self.d2)
+            self.theta = -self.stock_price \
+                * self.normal_pdf(self.d1) \
+                * self.volatility / (2 * sqrt(self.time_to_expiration)) \
+                - self.cost_of_carry * self.stock_price \
+                * exp(-self.cost_of_carry * self.time_to_expiration) \
+                * self.normal_cdf(self.d1) - self.risk_free_rate \
+                * self.strike_price * exp(-self.risk_free_rate * self.time_to_expiration) \
+                * self.normal_cdf(self.d2)
         elif self.option_type == OptionType.PUT:
-            self.theta = -self.stock_price * \
-                self.normal_pdf(self.d1) * \
-                self.volatility / (2 * sqrt(self.time_to_expiration)) + \
-                self.cost_of_carry * self.stock_price * \
-                exp(-self.cost_of_carry * self.time_to_expiration) * \
-                self.normal_cdf(-self.d1) + self.risk_free_rate * \
-                self.strike_price * exp(-self.risk_free_rate * self.time_to_expiration) * \
-                self.normal_cdf(-self.d2)
+            self.theta = -self.stock_price \
+                * self.normal_pdf(self.d1) \
+                * self.volatility / (2 * sqrt(self.time_to_expiration)) \
+                + self.cost_of_carry * self.stock_price \
+                * exp(-self.cost_of_carry * self.time_to_expiration) \
+                * self.normal_cdf(-self.d1) + self.risk_free_rate \
+                * self.strike_price * exp(-self.risk_free_rate * self.time_to_expiration) \
+                * self.normal_cdf(-self.d2)
             
-    def calculate_vega(self):
-        self.vega = self.stock_price * \
-            self.normal_cdf(self.d1) * sqrt(self.time_to_expiration)
+    def calculate_vega(self) -> None:
+        self.vega = self.stock_price * self.normal_cdf(self.d1) * sqrt(self.time_to_expiration)
 
-    def calculate_rho(self):
+    def calculate_rho(self) -> None:
         if self.option_type == OptionType.CALL and self.cost_of_carry != 0:
-            self.rho = self.time_to_expiration * \
-                self.strike_price * \
-                exp(-self.risk_free_rate * self.time_to_expiration) * \
-                self.normal_cdf(self.d2)
+            self.rho = self.time_to_expiration \
+                * self.strike_price \
+                * exp(-self.risk_free_rate * self.time_to_expiration) \
+                * self.normal_cdf(self.d2)
         elif self.option_type == OptionType.PUT and self.cost_of_carry != 0:
-            self.rho = -self.time_to_expiration * \
-                self.strike_price * \
-                e(-self.risk_free_rate * self.time_to_expiration) * \
-                self.normal_cdf(-self.d2)
+            self.rho = -self.time_to_expiration \
+                * self.strike_price \
+                * e(-self.risk_free_rate * self.time_to_expiration) \
+                * self.normal_cdf(-self.d2)
         else:
             self.rho = -self.time_to_expiration * self.premium()
 
-    def calculate_premium_american(self):
+    def calculate_premium_american(self) -> None:
         self.premium = self.binomial_tree()
 
-    def binomial_tree(self, steps=100):
-        dt = self.time_to_expiration / steps
-        u = exp(self.volatility * sqrt(dt))
-        d = 1 / u
-        p = (exp((self.cost_of_carry - self.dividend_yield) * dt) - d) / (u - d)
-        discount_factor = exp(-self.risk_free_rate * dt)
+    def binomial_tree(self, steps=100) -> float:
+        """
+        Calculates the premium of an American-style option.
+
+        This method uses the binomial pricing model to calculate the premium of
+        an American-style call or put option. The calculated premium is then stored in the
+        attribute `self.premium`.
+        """
+
+        time_step = self.time_to_expiration / steps
+        up_factor = exp(self.volatility * sqrt(time_step))
+        down_factor = 1 / up_factor
+        probability = (exp((self.cost_of_carry - self.dividend_rate) * time_step) - down_factor) / (up_factor - down_factor)
+        discount_factor = exp(-self.risk_free_rate * time_step)
 
         stock_tree = zeros((steps + 1, steps + 1))
         option_tree = zeros((steps + 1, steps + 1))
 
         for i in range(steps + 1):
             for j in range(i + 1):
-                stock_tree[j, i] = self.stock_price * (u ** (i - j)) * (d ** j)
+                stock_tree[j, i] = self.stock_price * (up_factor ** (i - j)) * (down_factor ** j)
 
         if self.option_type == OptionType.CALL:
             option_tree[:, steps] = maximum(zeros(steps + 1), stock_tree[:, steps] - self.strike_price)
@@ -154,7 +188,7 @@ class Option:
 
         for i in range(steps - 1, -1, -1):
             for j in range(i + 1):
-                option_tree[j, i] = discount_factor * (p * option_tree[j, i + 1] + (1 - p) * option_tree[j + 1, i + 1])
+                option_tree[j, i] = discount_factor * (probability * option_tree[j, i + 1] + (1 - probability) * option_tree[j + 1, i + 1])
                 if self.option_type == OptionType.CALL:
                     option_tree[j, i] = max(option_tree[j, i], stock_tree[j, i] - self.strike_price)
                 elif self.option_type == OptionType.PUT:
@@ -162,7 +196,18 @@ class Option:
 
         return option_tree[0, 0]
 
-    def implied_volatility(self, target_premium, initial_guess=0.2, max_iterations=100, tolerance=1e-6):
+    def implied_volatility(self, target_premium, initial_guess=0.2, max_iterations=100, tolerance=1e-6) -> None:
+        """
+        Calculates the implied volatility of an option, given a target option premium.
+
+        This method uses the Newton-Raphson method; an iterative method for finding the root of a real-valued function.
+        In seeking the minimize the difference between the calculated option premium and the target option premium,
+        this method updates the current estimate of implied volatility by subtracting the ratio of the function value (`premium_difference`)
+        to its derivative (vega) at the current estimate. The method then iterates until either `premium_difference`
+        is within the specified tolerance or the maximum number of iterations has been reached.
+        
+        This method raises a RuntimeError if it does not converge within the specified number of iterations.
+        """
         sigma = initial_guess
         for i in range(max_iterations):
             self.volatility = sigma
